@@ -2,10 +2,20 @@ import psycopg2
 from dto import User
 from fastapi import FastAPI, HTTPException
 from repository import (create_user, get_all_users, edit_user, delete_user, get_user_by_email)
-from auth import login_user
+from auth import (login_user, verify_email)
 from dto import Login
 import bcrypt
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+DB_NAME = os.getenv("DB_NAME")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT", "5432")
 
 app = FastAPI()
 
@@ -18,10 +28,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 try:
     conn = psycopg2.connect(
-        "dbname='croche_encantado_bd' user='postgres' host='localhost' password='password'"
+        dbname=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        host=DB_HOST,
+        port=DB_PORT
     )
 except:
     print("I am unable to connect to the database")
@@ -78,3 +91,16 @@ def delete_user_by_id(id: int):
 @app.post("/login", status_code=200)
 def login(login: Login):
     return login_user(login, conn)
+
+@app.post("/register", status_code=201)
+def register(user: User):
+    return create_user(user, conn)
+
+@app.get("/verify_email")
+def email_verify(token:str):
+    return verify_email(token, conn)
+
+
+@app.get("/teste")
+def test():
+    return {"message": "API is working!"}
